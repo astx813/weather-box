@@ -1,0 +1,12 @@
+private.*
+lib/*
+.DS_Store
+._.*
+platformio.ini
+
+.pio
+.pioenvs
+.piolibdeps
+.clang_complete
+.gcc-flags.json
+lib/*
