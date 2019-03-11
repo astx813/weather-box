@@ -49,9 +49,8 @@
 //
 // All text above must be included in any redistribution.
 
-// edit the config.h tab and enter your Adafruit IO credentials
-// and any additional configuration needed for WiFi, cellular,
-// or ethernet clients.
+// edit public.h tab and configure Adafruit IO & WIFI credentials
+// and any other private data. Then rename to private.h!!!
 #include "private.h"
 
 // Configuration you can optionally change (but probably want to keep the same):
