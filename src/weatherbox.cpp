@@ -147,7 +147,7 @@ void loop() {
   // it should always be present at the top of your loop
   // function. it keeps the client connected to
   // io.adafruit.com, and processes any incoming data.
-  // pattern.Update();
+
   io.run();
   photo = analogRead(PHOTO_PIN);
   light.Filter(photo);
@@ -169,11 +169,10 @@ void loop() {
   analogWrite(LED_BUILTIN, light.Current());
 }
 
-// this function is called whenever a feed message
-// is received from Adafruit IO. it was attached to
-// the feed in the setup() function above.
+// these function are called whenever a feed message
+// is received from Adafruit IO. They were attached to
+// the feed in setup()
 void handleHigh(AdafruitIO_Data *data) {
-
   Serial.print("high received <- ");
   Serial.println(data->value());  // print the temperature data to the serial monitor
 
@@ -184,7 +183,6 @@ void handleHigh(AdafruitIO_Data *data) {
 }
 
 void handleLow(AdafruitIO_Data *data) {
-
   Serial.print("low received <- ");
   Serial.println(data->value());  // print the temperature data to the serial monitor
 
@@ -195,7 +193,6 @@ void handleLow(AdafruitIO_Data *data) {
 }
 
 void handleSunrise(AdafruitIO_Data *data) {
-
   Serial.print("Sunrise received <- ");
   Serial.println(data->value());
 
@@ -204,10 +201,9 @@ void handleSunrise(AdafruitIO_Data *data) {
 }
 
 void handleSunset(AdafruitIO_Data *data) {
-
   Serial.print("Sunset received <- ");
   Serial.println(data->value());
-  if(!data->isTrue()) {
+  if(!data->isTrue()) {  // For manually turning off the lights
     lightRange(0, PIXEL_COUNT, 0, true);
   }
   //int sunset = data->toInt();
@@ -215,8 +211,7 @@ void handleSunset(AdafruitIO_Data *data) {
 }
 
 void handleCondition(AdafruitIO_Data *data) {
-
-  lightPixels(pixels.Color(0, 0, 0, 0)); // reset all pixels to off
+  lightPixels(pixels.Color(0, 0, 0, 0)); // start with a clean slate
 
   String forecast = data->toString(); // store the incoming weather data in a string
   Serial.print("New forecast: ");
@@ -248,61 +243,41 @@ void handleCondition(AdafruitIO_Data *data) {
 
   // if there's rain in the forecast:
   //   bottom 4 blue, middle 4 white (but don't draw them yet)
-  if (forecast.equalsIgnoreCase(rain) || forecast.equalsIgnoreCase(lightrain) || forecast.equalsIgnoreCase(rainshower)){
+  if (forecast.equalsIgnoreCase(rain) ||
+      forecast.equalsIgnoreCase(lightrain) ||
+      forecast.equalsIgnoreCase(rainshower)){
     Serial.println("precipitation in the forecast today");
     lightRange(0, 3, pixels.Color(0, 30, 200, 0), false);
     lightRange(4, 7, pixels.Color(0, 0, 0, 255), false);
-    // pixels.setPixelColor(0, pixels.Color(0, 30, 200, 20));
-    // pixels.setPixelColor(1, pixels.Color(0, 30, 200, 20));
-    // pixels.setPixelColor(2, pixels.Color(0, 30, 200, 20));
-    // pixels.setPixelColor(3, pixels.Color(0, 30, 200, 20));
-    // pixels.setPixelColor(4, pixels.Color(0, 0, 0, 255));
-    // pixels.setPixelColor(5, pixels.Color(0, 0, 0, 255));
-    // pixels.setPixelColor(6, pixels.Color(0, 0, 0, 255));
-    // pixels.setPixelColor(7, pixels.Color(0, 0, 0, 255));
   }
 
   // if there's snow in the forecast
   //   botom four whiteish blue, middle 4 white (but don't draw them yet)
-  if (forecast.equalsIgnoreCase(snow) || forecast.equalsIgnoreCase(rainandsnow) || forecast.equalsIgnoreCase(snowshower)){
+  if (forecast.equalsIgnoreCase(snow) ||
+      forecast.equalsIgnoreCase(rainandsnow) ||
+      forecast.equalsIgnoreCase(snowshower)){
     Serial.println("precipitation in the forecast today");
     lightRange(0, 3, pixels.Color(0, 30, 200, 20), false);
     lightRange(4, 7, pixels.Color(0, 0, 0, 255), false);
-    // pixels.setPixelColor(0, pixels.Color(0, 30, 200, 20));
-    // pixels.setPixelColor(1, pixels.Color(0, 30, 200, 20));
-    // pixels.setPixelColor(2, pixels.Color(0, 30, 150, 150));
-    // pixels.setPixelColor(3, pixels.Color(0, 30, 150, 150));
-    // pixels.setPixelColor(4, pixels.Color(0, 0, 0, 255));
-    // pixels.setPixelColor(5, pixels.Color(0, 0, 0, 255));
-    // pixels.setPixelColor(6, pixels.Color(0, 0, 0, 255));
-    // pixels.setPixelColor(7, pixels.Color(0, 0, 0, 255));
   }
 
   // if there's sun in the forecast
   //   top four pixels yellow (but don't draw them yet)
-  if (forecast.equalsIgnoreCase(clearsky) || forecast.equalsIgnoreCase(fair) || forecast.equalsIgnoreCase(sunny)){
+  if (forecast.equalsIgnoreCase(clearsky) ||
+      forecast.equalsIgnoreCase(fair) ||
+      forecast.equalsIgnoreCase(sunny)){
     Serial.println("some kind of sun in the forecast today");
     lightRange(8, 11, pixels.Color(255, 150, 0, 0), false);
-    // pixels.setPixelColor(8, pixels.Color(255, 150, 0, 0));
-    // pixels.setPixelColor(9, pixels.Color(255, 150, 0, 0));
-    // pixels.setPixelColor(10, pixels.Color(255, 150, 0, 0));
-    // pixels.setPixelColor(11, pixels.Color(255, 150, 0, 0));
   }
 
   // if there're clouds in the forecast
   //   middle four white, top four pixels yellow (but don't draw them yet)
-  if (forecast.equalsIgnoreCase(cloudy) || forecast.equalsIgnoreCase(mostlycloudy) || forecast.equalsIgnoreCase(partlycloudy)){
+  if (forecast.equalsIgnoreCase(cloudy) ||
+      forecast.equalsIgnoreCase(mostlycloudy) ||
+      forecast.equalsIgnoreCase(partlycloudy)){
     Serial.println("cloudy sky in the forecast today");
     lightRange(4, 7, pixels.Color(0, 0, 0, 255), false);
     lightRange(8, 11, pixels.Color(255, 150, 0, 0), false);
-    // pixels.setPixelColor(4, pixels.Color(0, 0, 0, 255));
-    // pixels.setPixelColor(5, pixels.Color(0, 0, 0, 255));
-    // pixels.setPixelColor(6, pixels.Color(0, 0, 0, 255));
-    // pixels.setPixelColor(7, pixels.Color(0, 0, 0, 255));
-    // pixels.setPixelColor(8, pixels.Color(255, 150, 0, 0));
-    // pixels.setPixelColor(9, pixels.Color(255, 150, 0, 0));
-    // pixels.setPixelColor(10, pixels.Color(255, 150, 0, 0));
-    // pixels.setPixelColor(11, pixels.Color(255, 150, 0, 0));
    }
 
    pixels.show(); // light up the pixels
