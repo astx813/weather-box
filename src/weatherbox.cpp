@@ -33,7 +33,6 @@
 #include <AdafruitIO.h>
 #include <Adafruit_MQTT.h>
 
-#include "NeoPattern.h"
 #include "MegunoLink.h"
 #include "Filter.h"
 
@@ -61,7 +60,7 @@
 #define BLUE_PIN        2
 #define PIXEL_COUNT     11                      // Number of NeoPixels.
 #define PIXEL_TYPE      NEO_GRBW + NEO_KHZ800   // Type of the NeoPixels (see strandtest example).
-void doNothing();
+
 // before running this code, create feeds on Adafruit IO that match these names:
 AdafruitIO_Feed *hightemp = io.feed("weather-high"); // set up the 'hightemp' feed
 AdafruitIO_Feed *precipitation = io.feed("weather-precipitation"); // set up the 'precipitation' feed
@@ -73,8 +72,6 @@ Adafruit_7segment highmatrix = Adafruit_7segment();  // create segment display o
 Adafruit_7segment lowmatrix = Adafruit_7segment();
 Adafruit_NeoPixel pixels = Adafruit_NeoPixel(PIXEL_COUNT, PIXEL_PIN, PIXEL_TYPE); // create NeoPixels object
 ExponentialFilter<int> light(10,0);
-
-//NeoPatterns pattern = NeoPatterns(PIXEL_COUNT, PATTERN_PIN, PIXEL_TYPE, doNothing);
 
 int prevlight = -1;
 int brightness = 255;
@@ -90,28 +87,26 @@ void handleCondition(AdafruitIO_Data *data);
 void handleControl(AdafruitIO_Data *data);
 
 void setup() {
+  int rnd=random(1,51);
+
   pinMode(RED_PIN, OUTPUT);
   pinMode(BLUE_PIN, OUTPUT);
   digitalWrite(RED_PIN, HIGH);
   digitalWrite(BLUE_PIN, HIGH);
   // start the serial connection
   Serial.begin(115200);
-  //pattern.begin();
-  //pattern.RainbowCycle(3);
-  // #ifdef ESP8266
-  //   analogWriteRange(255);
-  // #endif
 
-  highmatrix.begin(0x70); // initialize matrix display
+  highmatrix.begin(0x70); // initialize matrix displays
   lowmatrix.begin(0x71);
   highmatrix.clear();
-  lowmatrix.print(0);
-  //lowmatrix.setBrightness(3);
-  //pinMode(LED_PIN, OUTPUT);
+  lowmatrix.clear();
 
   // Initialize NeoPixels.
   pixels.begin();
-  lightPixels(pixels.Color(64, 8, 8, 0));
+  lightRange(0,3,pixels.Color(rnd*5,rnd,rnd,0),false);
+  lightRange(4,7,pixels.Color(rnd,rnd*5,rnd,0),false);
+  lightRange(8,11,pixels.Color(rnd,rnd,rnd*5,0),true);
+
   Serial.print("Connecting to Adafruit IO");
 
   // connect to io.adafruit.com
@@ -132,7 +127,7 @@ void setup() {
     Serial.print(".");
     delay(500);
   }
-  lightPixels(0);
+  lightRange(4,7,pixels.Color(0,0,0,0),true);
   // we are connected
   if (DEBUG) {
     Serial.println();
