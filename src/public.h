@@ -21,6 +21,14 @@
 #include "AdafruitIO_WiFi.h"
 AdafruitIO_WiFi io(IO_USERNAME, IO_KEY, WIFI_SSID, WIFI_PASS);
 
+/******************************* OTA ***************************************/
+
+// If using OTA, these parameters need to be passed to the OTA library
+// using setPort(), setHostname(), and setPassword()
+
+#define OTA_PORT        ####
+#define OTA_HOST        "WeatherBox"
+#define OTA_PASS        "password"
 
 /******************************* FONA **************************************/
 

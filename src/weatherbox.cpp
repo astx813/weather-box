@@ -30,6 +30,9 @@
 #include "Adafruit_LEDBackpack.h"
 #include "Adafruit_NeoPixel.h"
 #include <ESP8266WiFi.h>
+#include <ESP8266mDNS.h>
+#include <WiFiUdp.h>
+#include <ArduinoOTA.h>
 #include <AdafruitIO.h>
 #include <Adafruit_MQTT.h>
 
@@ -100,6 +103,8 @@ void setup() {
   lowmatrix.begin(0x71);
   highmatrix.clear();
   lowmatrix.clear();
+  highmatrix.writeDisplay();
+  lowmatrix.writeDisplay();
 
   // Initialize NeoPixels.
   pixels.begin();
@@ -107,10 +112,95 @@ void setup() {
   lightRange(4,7,pixels.Color(rnd,rnd*5,rnd,0),false);
   lightRange(8,11,pixels.Color(rnd,rnd,rnd*5,0),true);
 
-  Serial.print("Connecting to Adafruit IO");
+  if(DEBUG) { Serial.print("Connecting to Adafruit IO"); }
+
+  WiFi.mode(WIFI_STA);
+  WiFi.begin(WIFI_SSID, WIFI_PASS);
+  while(WiFi.waitForConnectResult() != WL_CONNECTED) {
+    if(DEBUG) { Serial.println("Not connected."); }
+    delay(1000);
+  }
+
+  // show first & last IP octets on high & low displays
+  highmatrix.print(WiFi.localIP()[0],DEC);
+  lowmatrix.print(WiFi.localIP()[3],DEC);
+  highmatrix.writeDisplay();
+  lowmatrix.writeDisplay();
+
+  ArduinoOTA.setPort(OTA_PORT);
+  ArduinoOTA.setHostname(OTA_HOST);
+  ArduinoOTA.setPassword(OTA_PASS);
+  //alternatively ArduinoOTA.setPasswordHash(MD5hash)
+
+  ArduinoOTA.onStart([]() {
+    highmatrix.writeDigitRaw(0, B00000000); // TODO: bitmask S
+    highmatrix.writeDigitRaw(1, B00000000); // TODO: bitmask t
+    highmatrix.writeDigitRaw(2, B00000000); // blank colon
+    highmatrix.writeDigitRaw(3, B00000000); // TODO: bitmask r
+    highmatrix.writeDigitRaw(4, B00000000); // TODO: bitmask t
+    highmatrix.writeDisplay();
+    lowmatrix.print(0, DEC);
+    lowmatrix.writeDisplay();
+  });
+  ArduinoOTA.onEnd([]() {
+    highmatrix.writeDigitRaw(0, B00000000); // TODO: bitmask d
+    highmatrix.writeDigitRaw(1, B00000000); // TODO: bitmask o
+    highmatrix.writeDigitRaw(3, B00000000); // TODO: bitmask n
+    highmatrix.writeDigitRaw(4, B00000000); // TODO: bitmask E
+    highmatrix.writeDisplay();
+    lowmatrix.clear();
+    lowmatrix.writeDisplay();
+  });
+  ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
+    if (progress==total) {
+      lowmatrix.print(100,DEC);
+      lowmatrix.writeDisplay();
+    } else {
+      int perthou = (int)((progress/total)*1000); // to keep the 1/10th digit
+      lowmatrix.writeDigitNum(1,perthou/100,false);
+      lowmatrix.writeDigitNum(3,perthou/10, true);
+      lowmatrix.writeDigitNum(4,perthou%10, false);
+      lowmatrix.writeDisplay();
+    }
+  });
+  ArduinoOTA.onError([](ota_error_t error) {
+    highmatrix.writeDigitRaw(0, B00000000); // TODO: bitmask E
+    highmatrix.writeDigitRaw(1, B00000000); // TODO: bitmask r
+    highmatrix.writeDigitRaw(3, B00000000); // TODO: bitmask r
+    highmatrix.writeDisplay();
+    if (error == OTA_AUTH_ERROR) {
+      lowmatrix.writeDigitRaw(0, B00000000); // TODO: bitmask A
+      lowmatrix.writeDigitRaw(1, B00000000); // TODO: bitmask u
+      lowmatrix.writeDigitRaw(3, B00000000); // TODO: bitmask t
+      lowmatrix.writeDigitRaw(4, B00000000); // TODO: bitmask h
+    } else if (error == OTA_BEGIN_ERROR) {
+      lowmatrix.writeDigitRaw(0, B00000000); // TODO: bitmask S
+      lowmatrix.writeDigitRaw(1, B00000000); // TODO: bitmask t
+      lowmatrix.writeDigitRaw(3, B00000000); // TODO: bitmask r
+      lowmatrix.writeDigitRaw(4, B00000000); // TODO: bitmask t
+    } else if (error == OTA_CONNECT_ERROR) {
+      lowmatrix.writeDigitRaw(0, B00000000); // TODO: bitmask C
+      lowmatrix.writeDigitRaw(1, B00000000); // TODO: bitmask o
+      lowmatrix.writeDigitRaw(3, B00000000); // TODO: bitmask n
+      lowmatrix.writeDigitRaw(4, B00000000); // TODO: bitmask n
+    } else if (error == OTA_RECEIVE_ERROR) {
+      lowmatrix.writeDigitRaw(1, B00000000); // TODO: bitmask r
+      lowmatrix.writeDigitRaw(3, B00000000); // TODO: bitmask c
+      lowmatrix.writeDigitRaw(4, B00000000); // TODO: bitmask v
+    } else if (error == OTA_END_ERROR) {
+      lowmatrix.writeDigitRaw(1, B00000000); // TODO: bitmask E
+      lowmatrix.writeDigitRaw(3, B00000000); // TODO: bitmask n
+      lowmatrix.writeDigitRaw(4, B00000000); // TODO: bitmask d
+    } else {
+      lowmatrix.writeDigitRaw(1, B00000000); // TODO: bitmask E
+      lowmatrix.writeDigitRaw(3, B00000000); // TODO: bitmask r
+      lowmatrix.writeDigitRaw(4, B00000000); // TODO: bitmask r
+    }
+  });
+  ArduinoOTA.begin();
 
   // connect to io.adafruit.com
-  io.connect();
+  io.connect(); // TODO: Will io trying to connect mess up with us already connected?
 
   // set up a message handler for the count feed.
   // the handleMessage function (defined below)
