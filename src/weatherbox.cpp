@@ -214,6 +214,7 @@ void handleCondition(AdafruitIO_Data *data) {
   lightPixels(pixels.Color(0, 0, 0, 0)); // start with a clean slate
 
   String forecast = data->toString(); // store the incoming weather data in a string
+  int slashIndex = forecast.indexOf("/");
   Serial.print("New forecast: ");
   Serial.print(forecast);
   if (forecast.startsWith("AM")) {
@@ -225,10 +226,17 @@ void handleCondition(AdafruitIO_Data *data) {
   }  else {
     Serial.println();
   }
+
+  if (slashIndex >= 0) {
+    forecast.remove(slashIndex,forecast.length()-slashIndex);
+    Serial.println("Dropped second half");
+  }
+
   //the following strings store the varous IFTTT weather report words I've discovered so far
   String rain = String("Rain");
   String lightrain = String("Light Rain");
   String rainshower = String ("Rain Shower");
+  String showers = String("Showers");
   String snow = String("Snow");
   String cloudy = String("Cloudy");
   String mostlycloudy = String("Mostly Cloudy");
@@ -236,8 +244,9 @@ void handleCondition(AdafruitIO_Data *data) {
   String clearsky = String("Clear");
   String fair = String("Fair");
   String sunny = String("Sunny");
+  String mostlysunny = String("Mostly Sunny");
   String rainandsnow = String("Rain and Snow");
-  String snowshower = String("Snow Shower");
+  String snowshower = String("Snow Showers");
 
   // These if statements compare the incoming weather variable to the stored conditions, and control the NeoPixels accordingly.
 
@@ -245,7 +254,8 @@ void handleCondition(AdafruitIO_Data *data) {
   //   bottom 4 blue, middle 4 white (but don't draw them yet)
   if (forecast.equalsIgnoreCase(rain) ||
       forecast.equalsIgnoreCase(lightrain) ||
-      forecast.equalsIgnoreCase(rainshower)){
+      forecast.equalsIgnoreCase(rainshower) ||
+      forecast.equalsIgnoreCase(showers)) {
     Serial.println("precipitation in the forecast today");
     lightRange(0, 3, pixels.Color(0, 30, 200, 0), false);
     lightRange(4, 7, pixels.Color(0, 0, 0, 255), false);
@@ -265,7 +275,8 @@ void handleCondition(AdafruitIO_Data *data) {
   //   top four pixels yellow (but don't draw them yet)
   if (forecast.equalsIgnoreCase(clearsky) ||
       forecast.equalsIgnoreCase(fair) ||
-      forecast.equalsIgnoreCase(sunny)){
+      forecast.equalsIgnoreCase(sunny) ||
+      forecast.equalsIgnoreCase(mostlysunny)){
     Serial.println("some kind of sun in the forecast today");
     lightRange(8, 11, pixels.Color(255, 150, 0, 0), false);
   }
