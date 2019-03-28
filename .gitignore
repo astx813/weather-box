@@ -3,6 +3,11 @@ lib/*
 .DS_Store
 ._.*
 platformio.ini
+.travis.yml
+include/README
+._*
+test/README
+
 
 .pio
 .pioenvs
