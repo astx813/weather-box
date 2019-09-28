@@ -90,13 +90,14 @@ void handleCondition(AdafruitIO_Data *data);
 void handleControl(AdafruitIO_Data *data);
 
 void setup() {
+  int counter = 0;
   pinMode(RED_PIN, OUTPUT);
   pinMode(BLUE_PIN, OUTPUT);
   digitalWrite(RED_PIN, HIGH);
   digitalWrite(BLUE_PIN, HIGH);
   // start the serial connection
   Serial.begin(115200);
-  Serial.println();
+  if (DEBUG) Serial.println();
   //pattern.begin();
   //pattern.RainbowCycle(3);
   // #ifdef ESP8266
@@ -106,14 +107,22 @@ void setup() {
   highmatrix.begin(0x70); // initialize matrix display
   lowmatrix.begin(0x71);
   highmatrix.clear();
-  lowmatrix.print(0);
+  highmatrix.writeDigitNum(0,0, true);
+  highmatrix.writeDigitNum(1,0, true);
+  highmatrix.writeDigitNum(3,0, true);
+  highmatrix.writeDigitNum(4,0, true);
+  highmatrix.writeDisplay();
+  lowmatrix.writeDisplay();
+  //lowmatrix.print(0);
   //lowmatrix.setBrightness(3);
   //pinMode(LED_PIN, OUTPUT);
 
   // Initialize NeoPixels.
   pixels.begin();
+  pixels.clear();
+  pixels.show();
   // lightPixels(pixels.Color(64, 8, 8, 0)); delay(1000);
-  if ( DEBUG ) Serial.print("Connecting to Adafruit IO");
+  if (DEBUG) Serial.print("Connecting to Adafruit IO");
 
   // connect to io.adafruit.com
   io.connect();
@@ -130,10 +139,13 @@ void setup() {
 
   // wait for a connection
   while(io.status() < AIO_CONNECTED) {
-    if ( DEBUG ) Serial.println(io.statusText());
-    //Serial.print(".");
-    delay(500);
+    if (DEBUG) Serial.print(".");
+    if (counter >=9999) highmatrix.print(0xDEAD,HEX);
+    else highmatrix.println(++counter);
+    highmatrix.writeDisplay();
+    delay(100);
   }
+
   lightPixels(0);
   // we are connected
   if ( DEBUG ) {
@@ -147,6 +159,7 @@ void setup() {
   sunset->get();
   precipitation->get();
   if (DEBUG) Serial.println("Setup complete.");
+
 }
 
 void loop() {
@@ -173,7 +186,7 @@ void loop() {
   //   lowmatrix.writeDisplay();
   //   pixels.show();
   // }
-  // analogWrite(LED_BUILTIN, light.Current());
+  // analogWrite(RED_PIN, light.Current());
 }
 
 // this function is called whenever a feed message
@@ -181,8 +194,10 @@ void loop() {
 // the feed in the setup() function above.
 void handleHigh(AdafruitIO_Data *data) {
 
-  Serial.print("high received <- ");
-  Serial.println(data->value());  // print the temperature data to the serial monitor
+  if (DEBUG) {
+    Serial.print("high received <- ");
+    Serial.println(data->value());  // print the temperature data to the serial monitor
+  }
 
   int todaysHigh = data->toInt(); // store the incoming temperature data as an integer
   highmatrix.print(todaysHigh, DEC);  // send the temperature value to the display
@@ -192,9 +207,10 @@ void handleHigh(AdafruitIO_Data *data) {
 
 void handleLow(AdafruitIO_Data *data) {
 
-  Serial.print("low received <- ");
-  Serial.println(data->value());  // print the temperature data to the serial monitor
-
+  if (DEBUG) {
+    Serial.print("low received <- ");
+    Serial.println(data->value());  // print the temperature data to the serial monitor
+  }
   int todaysLow = data->toInt(); // store the incoming temperature data as an integer
   lowmatrix.print(todaysLow, DEC);  // send the temperature value to the display
   lowmatrix.writeDisplay();          // light up display
@@ -202,23 +218,36 @@ void handleLow(AdafruitIO_Data *data) {
 }
 
 void handleSunrise(AdafruitIO_Data *data) {
-
-  Serial.print("Sunrise received <- ");
-  Serial.println(data->value());
-
+  if (DEBUG) {
+    Serial.print("Sunrise received <- ");
+    Serial.println(data->value());
+  }
   //int sunrise = data->toInt();
   delay(500);
 }
 
 void handleSunset(AdafruitIO_Data *data) {
 
-  Serial.print("Sunset received <- ");
-  Serial.println(data->value());
-  if(!data->isTrue()) {
-    lightRange(0, PIXEL_COUNT, 0, true);
+  if (DEBUG) {
+    Serial.print("Sunset received <- ");
+    Serial.println(data->value());
   }
+  if((data->toString()).length() < 5) {
+  //if(!data->isTrue()) {
+    //lightRange(0, PIXEL_COUNT, 0, true);
+    pixels.setBrightness(64);
+    highmatrix.setBrightness(3);
+    lowmatrix.setBrightness(3);
+  } else {
+    pixels.setBrightness(255);
+    highmatrix.setBrightness(15);
+    lowmatrix.setBrightness(15);
+  }
+  highmatrix.writeDisplay();
+  lowmatrix.writeDisplay();
+  pixels.show();
   //int sunset = data->toInt();
-  delay(500);
+  //delay(500);
 }
 
 void handleCondition(AdafruitIO_Data *data) {
@@ -237,13 +266,22 @@ void handleCondition(AdafruitIO_Data *data) {
   } else if (forecast.startsWith("PM")) {
     forecast.remove(0,3);
     if (DEBUG) Serial.println(" (PM stripped)");
-  }  else {
+  } else if (forecast.startsWith("Mostly")) {
+    forecast.remove(0,7);
+    if (DEBUG) Serial.println(" (Mostly stripped)");
+  } else if (forecast.startsWith("Partly")) {
+    forecast.remove(0,7);
+    if (DEBUG) Serial.println(" (Partly stripped)");
+  } else if (forecast.startsWith("Isolated ")) {
+    forecast.remove(0,9);
+    if (DEBUG) Serial.println(" (Isolated stripped)");
+  } else {
     if (DEBUG) Serial.println();
   }
 
   if (slashIndex >= 0) {
     forecast.remove(slashIndex,forecast.length()-slashIndex);
-    Serial.println("Dropped second half");
+    if (DEBUG) Serial.println("Dropped second half");
   }
 
   //the following strings store the varous IFTTT weather report words I've discovered so far
@@ -253,16 +291,16 @@ void handleCondition(AdafruitIO_Data *data) {
   String showers = String("Showers");
   String snow = String("Snow");
   String cloudy = String("Cloudy");
-  String mostlycloudy = String("Mostly Cloudy");
-  String partlycloudy = String("Partly Cloudy");
+  //String mostlycloudy = String("Mostly Cloudy");
+  //String partlycloudy = String("Partly Cloudy");
   String clearsky = String("Clear");
   String fair = String("Fair");
   String sunny = String("Sunny");
-  String mostlysunny = String("Mostly Sunny");
+  //String mostlysunny = String("Mostly Sunny");
   String rainandsnow = String("Rain and Snow");
   String snowshower = String("Snow Showers");
   String thunderstorms = String("Thunderstorms");
-  String isolatedthunderstorms = String("Isolated Thunderstorms");
+  //String isolatedthunderstorms = String("Isolated Thunderstorms");
 
   // These if statements compare the incoming weather variable to the stored conditions, and control the NeoPixels accordingly.
 
@@ -272,9 +310,8 @@ void handleCondition(AdafruitIO_Data *data) {
       forecast.equalsIgnoreCase(lightrain) ||
       forecast.equalsIgnoreCase(rainshower) ||
       forecast.equalsIgnoreCase(showers) ||
-      forecast.equalsIgnoreCase(thunderstorms) ||
-      forecast.equalsIgnoreCase(isolatedthunderstorms)) {
-    Serial.println("precipitation in the forecast today");
+      forecast.equalsIgnoreCase(thunderstorms)) { // || forecast.equalsIgnoreCase(isolatedthunderstorms)) {
+    if (DEBUG) Serial.println("precipitation in the forecast today");
     lightRange(0, 3, pixels.Color(0, 30, 200, 0), false);
     lightRange(4, 7, pixels.Color(0, 0, 0, 255), false);
     // pixels.setPixelColor(0, pixels.Color(0, 30, 200, 20));
@@ -292,7 +329,7 @@ void handleCondition(AdafruitIO_Data *data) {
   if (forecast.equalsIgnoreCase(snow) ||
       forecast.equalsIgnoreCase(rainandsnow) ||
       forecast.equalsIgnoreCase(snowshower)) {
-    Serial.println("precipitation in the forecast today");
+    if (DEBUG) Serial.println("precipitation in the forecast today");
     lightRange(0, 3, pixels.Color(0, 30, 200, 20), false);
     lightRange(4, 7, pixels.Color(0, 0, 0, 255), false);
     // pixels.setPixelColor(0, pixels.Color(0, 30, 200, 20));
@@ -309,9 +346,8 @@ void handleCondition(AdafruitIO_Data *data) {
   //   top four pixels yellow (but don't draw them yet)
   if (forecast.equalsIgnoreCase(clearsky) ||
       forecast.equalsIgnoreCase(fair) ||
-      forecast.equalsIgnoreCase(sunny) ||
-      forecast.equalsIgnoreCase(mostlysunny)) {
-    Serial.println("some kind of sun in the forecast today");
+      forecast.equalsIgnoreCase(sunny) ) {//|| forecast.equalsIgnoreCase(mostlysunny)) {
+    if (DEBUG) Serial.println("some kind of sun in the forecast today");
     lightRange(8, 11, pixels.Color(255, 150, 0, 0), false);
     // pixels.setPixelColor(8, pixels.Color(255, 150, 0, 0));
     // pixels.setPixelColor(9, pixels.Color(255, 150, 0, 0));
@@ -321,10 +357,10 @@ void handleCondition(AdafruitIO_Data *data) {
 
   // if there're clouds in the forecast
   //   middle four white, top four pixels yellow (but don't draw them yet)
-  if (forecast.equalsIgnoreCase(cloudy) ||
-      forecast.equalsIgnoreCase(mostlycloudy) ||
-      forecast.equalsIgnoreCase(partlycloudy)) {
-    Serial.println("cloudy sky in the forecast today");
+  if (forecast.equalsIgnoreCase(cloudy) ) {// } ||
+      //forecast.equalsIgnoreCase(mostlycloudy) ||
+      //forecast.equalsIgnoreCase(partlycloudy)) {
+    if (DEBUG) Serial.println("cloudy sky in the forecast today");
     lightRange(4, 7, pixels.Color(0, 0, 0, 255), false);
     lightRange(8, 11, pixels.Color(255, 150, 0, 0), false);
     // pixels.setPixelColor(4, pixels.Color(0, 0, 0, 255));
